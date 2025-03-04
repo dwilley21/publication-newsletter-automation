@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { csvToJson, saveJsonToFile } = require('./csvToJson');
 const { initializeBrevoApi, createContact } = require('./brevoApi');
+const { sendToBrevo } = require('./brevoSender');
 
 // Check if API key is provided
 if (!process.env.BREVO_API_KEY) {
@@ -43,10 +44,12 @@ Options:
   --csv <path>     Path to the CSV file (required unless --create-sample is used)
   --output <path>  Path to save the JSON output (optional)
   --create-sample <path>  Create a sample CSV file at the specified path
+  --send-campaigns  Send email campaigns to Brevo (default: false)
   --help           Show this help message
 
 Examples:
   node src/cli.js --csv ./data.csv --output ./output.json
+  node src/cli.js --csv ./data.csv --send-campaigns
   node src/cli.js --create-sample ./sample.csv
 `;
 
@@ -67,6 +70,7 @@ if (createSampleIndex !== -1 && createSampleIndex + 1 < args.length) {
 // Parse arguments
 let csvPath = '';
 let outputPath = '';
+let sendCampaigns = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--csv' && i + 1 < args.length) {
@@ -75,6 +79,8 @@ for (let i = 0; i < args.length; i++) {
   } else if (args[i] === '--output' && i + 1 < args.length) {
     outputPath = args[i + 1];
     i++;
+  } else if (args[i] === '--send-campaigns') {
+    sendCampaigns = true;
   }
 }
 
@@ -113,12 +119,29 @@ async function main() {
     }
     
     // Send data to Brevo
-    console.log('Sending data to Brevo API...');
-    for (const record of jsonData) {
-      await createContact(record);
+    if (sendCampaigns) {
+      console.log('\nSending email campaigns to Brevo API...');
+      try {
+        const result = await sendToBrevo(jsonData);
+        console.log(`\n✅ Success: ${result.message}`);
+        console.log('Campaign details:');
+        result.campaigns.forEach(campaign => {
+          console.log(`- ${campaign.publicationName}: Campaign ID ${campaign.campaignId}`);
+        });
+      } catch (error) {
+        console.error(`\n❌ Error sending campaigns: ${error.message}`);
+        process.exit(1);
+      }
+    } else {
+      console.log('\nSkipping campaign creation. Use --send-campaigns to create email campaigns.');
+      console.log('Creating contacts in Brevo instead...');
+      for (const record of jsonData) {
+        await createContact(record);
+      }
+      console.log('All contacts created in Brevo successfully');
     }
     
-    console.log('All data sent to Brevo successfully');
+    console.log('\nProcess completed successfully');
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);
