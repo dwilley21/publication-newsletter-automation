@@ -78,9 +78,71 @@
             </svg>
             Download JSON
           </button>
+          <button 
+            @click="sendCampaign" 
+            class="bg-purple-500 hover:bg-purple-600 text-white py-1 px-4 rounded-lg text-sm flex items-center"
+            :disabled="isSending"
+          >
+            <svg v-if="isSending" class="animate-spin -ml-1 mr-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            {{ isSending ? 'Sending...' : 'Send Campaign' }}
+          </button>
         </div>
       </div>
       <pre class="bg-gray-100 p-4 rounded-lg overflow-auto max-h-96 text-sm">{{ JSON.stringify(jsonResult, null, 2) }}</pre>
+    </div>
+    
+    <!-- Campaign Results Section -->
+    <div v-if="campaignResult" class="max-w-4xl mx-auto mt-8 bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-xl font-semibold mb-4">Campaign Results</h2>
+      
+      <div v-if="campaignResult.success" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div class="flex items-start">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div>
+            <p class="text-green-700 font-medium">{{ campaignResult.message }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div v-if="campaignResult.campaigns && campaignResult.campaigns.length > 0">
+        <h3 class="text-lg font-medium mb-2">Successful Campaigns</h3>
+        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+          <div v-for="(campaign, index) in campaignResult.campaigns" :key="index" class="mb-2 last:mb-0">
+            <div class="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span class="font-medium">{{ campaign.publicationName }}</span>
+              <span class="ml-2 text-gray-500 text-sm">Campaign ID: {{ campaign.campaignId }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div v-if="campaignResult.errors && campaignResult.errors.length > 0">
+        <h3 class="text-lg font-medium mb-2">Failed Campaigns</h3>
+        <div class="bg-red-50 p-4 rounded-lg">
+          <div v-for="(error, index) in campaignResult.errors" :key="index" class="mb-2 last:mb-0">
+            <div class="flex items-start">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p class="font-medium">{{ error.publicationName }}</p>
+                <p class="text-red-700 text-sm">{{ error.error }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     
     <div v-if="error" class="max-w-2xl mx-auto mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -101,9 +163,11 @@ import Papa from 'papaparse';
 const selectedFile = ref(null);
 const isDragging = ref(false);
 const isProcessing = ref(false);
+const isSending = ref(false);
 const jsonResult = ref(null);
 const error = ref(null);
 const copySuccess = ref(null);
+const campaignResult = ref(null);
 
 const handleFileSelect = (event) => {
   const file = event.target.files[0];
@@ -204,5 +268,44 @@ const copyToClipboard = () => {
     .catch(err => {
       error.value = `Failed to copy: ${err.message}`;
     });
+};
+
+const sendCampaign = async () => {
+  if (!jsonResult.value) return;
+  
+  isSending.value = true;
+  error.value = null;
+  campaignResult.value = null;
+  
+  try {
+    // Call the API endpoint to send the campaign
+    const response = await fetch('/api/send-campaign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ data: jsonResult.value }),
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to send campaign');
+    }
+    
+    campaignResult.value = result;
+    
+    // Scroll to the campaign results section
+    setTimeout(() => {
+      const campaignResultElement = document.querySelector('.campaign-result');
+      if (campaignResultElement) {
+        campaignResultElement.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  } catch (err) {
+    error.value = `Error sending campaign: ${err.message}`;
+  } finally {
+    isSending.value = false;
+  }
 };
 </script> 
