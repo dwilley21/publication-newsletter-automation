@@ -1,0 +1,4 @@
+Publication Name,Subject,Description,sender,HTML
+Newsletter 1,Welcome to our newsletter,This is our first newsletter,info@example.com,"<h1>Welcome!</h1><p>This is our first newsletter.</p>"
+Newsletter 2,Latest Updates,Check out our latest updates,updates@example.com,"<h1>Latest Updates</h1><p>Here are our latest updates.</p>"
+Newsletter 3,Special Offer,Don't miss our special offer,offers@example.com,"<h1>Special Offer</h1><p>Limited time offer!</p>" 

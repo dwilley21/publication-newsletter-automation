@@ -1,0 +1,22 @@
+{
+  "name": "brevo-csv-processor",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "cli": "node src/cli.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "csv-parser": "^3.2.0",
+    "dotenv": "^16.4.7",
+    "sib-api-v3-sdk": "^8.5.0"
+  },
+  "bin": {
+    "brevo-csv": "./src/cli.js"
+  }
+}

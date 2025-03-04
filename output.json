@@ -1,0 +1,23 @@
+[
+  {
+    "Publication Name": "Newsletter 1",
+    "Subject": "Welcome to our newsletter",
+    "Description": "This is our first newsletter",
+    "sender": "info@example.com",
+    "HTML": "<h1>Welcome!</h1><p>This is our first newsletter.</p>"
+  },
+  {
+    "Publication Name": "Newsletter 2",
+    "Subject": "Latest Updates",
+    "Description": "Check out our latest updates",
+    "sender": "updates@example.com",
+    "HTML": "<h1>Latest Updates</h1><p>Here are our latest updates.</p>"
+  },
+  {
+    "Publication Name": "Newsletter 3",
+    "Subject": "Special Offer",
+    "Description": "Don't miss our special offer",
+    "sender": "offers@example.com",
+    "HTML": "\"<h1>Special Offer</h1><p>Limited time offer!</p>\" "
+  }
+]
