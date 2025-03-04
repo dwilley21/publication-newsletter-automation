@@ -29,6 +29,32 @@ export default defineEventHandler(async (event) => {
     const month = date.toLocaleString('default', { month: 'long' });
     const year = date.getFullYear();
 
+    // Check if a scheduled date was provided
+    const scheduledAt = body.scheduledAt || null;
+    
+    // Get list ID if provided, otherwise use default (2)
+    const listId = body.listId || 2;
+    
+    // Validate scheduledAt if provided
+    if (scheduledAt) {
+      const scheduledDate = new Date(scheduledAt);
+      const now = new Date();
+      
+      if (isNaN(scheduledDate.getTime())) {
+        return {
+          success: false,
+          error: 'Invalid scheduled date format'
+        };
+      }
+      
+      if (scheduledDate <= now) {
+        return {
+          success: false,
+          error: 'Scheduled date must be in the future'
+        };
+      }
+    }
+
     const results = [];
     const errors = [];
 
@@ -61,6 +87,17 @@ export default defineEventHandler(async (event) => {
           htmlContent: entry['HTML']
         };
         
+        // Add scheduledAt if provided
+        if (scheduledAt) {
+          campaignData.scheduledAt = scheduledAt;
+          
+          // When scheduling a campaign, Brevo requires either listIds or segmentIds
+          // We'll use the provided list ID or the default (2)
+          campaignData.recipients = {
+            listIds: [listId]
+          };
+        }
+        
         // Make the API call to Brevo
         const response = await axios.post('https://api.brevo.com/v3/emailCampaigns', campaignData, {
           headers: {
@@ -72,7 +109,8 @@ export default defineEventHandler(async (event) => {
         results.push({
           publicationName: entry['Publication Name'],
           campaignId: response.data.id,
-          status: 'success'
+          status: 'success',
+          scheduled: scheduledAt ? new Date(scheduledAt).toLocaleString() : null
         });
       } catch (error) {
         let errorMessage = error.message;
@@ -92,7 +130,9 @@ export default defineEventHandler(async (event) => {
       success: results.length > 0,
       message: `Processed ${body.data.length} campaigns: ${results.length} succeeded, ${errors.length} failed`,
       campaigns: results,
-      errors: errors
+      errors: errors,
+      scheduled: scheduledAt ? true : false,
+      scheduledAt: scheduledAt ? new Date(scheduledAt).toLocaleString() : null
     };
   } catch (error) {
     console.error('Error in send-campaign API:', error);

@@ -94,6 +94,73 @@
           </button>
         </div>
       </div>
+      
+      <!-- Schedule Options -->
+      <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div class="flex items-center mb-2">
+          <input 
+            type="checkbox" 
+            id="scheduleToggle" 
+            v-model="isScheduled" 
+            class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+          >
+          <label for="scheduleToggle" class="ml-2 text-sm font-medium text-gray-700">
+            Schedule campaign for later
+          </label>
+        </div>
+        
+        <div v-if="isScheduled" class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input 
+              type="date" 
+              v-model="scheduledDate" 
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              :min="minDate"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+            <input 
+              type="time" 
+              v-model="scheduledTime" 
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+          </div>
+        </div>
+        
+        <div v-if="isScheduled" class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Brevo List ID (optional)</label>
+          <div class="flex items-center">
+            <input 
+              type="number" 
+              v-model="listId" 
+              placeholder="Default: 2"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+            <div class="ml-2">
+              <button 
+                type="button"
+                @click="showListHelp = !showListHelp"
+                class="text-gray-500 hover:text-gray-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div v-if="showListHelp" class="mt-2 text-sm text-gray-500 bg-gray-100 p-2 rounded">
+            <p>The List ID is required by Brevo when scheduling campaigns. You can find your list IDs in your Brevo account under Contacts > Lists.</p>
+            <p class="mt-1">If not specified, the default list ID (2) will be used, which is typically the default list in Brevo.</p>
+          </div>
+        </div>
+        
+        <p v-if="isScheduled" class="mt-2 text-sm text-gray-500">
+          Your campaign will be scheduled to send on {{ formattedScheduleDate }}.
+        </p>
+      </div>
+      
       <pre class="bg-gray-100 p-4 rounded-lg overflow-auto max-h-96 text-sm">{{ JSON.stringify(jsonResult, null, 2) }}</pre>
     </div>
     
@@ -108,6 +175,9 @@
           </svg>
           <div>
             <p class="text-green-700 font-medium">{{ campaignResult.message }}</p>
+            <p v-if="isScheduled" class="text-green-600 text-sm mt-1">
+              Campaigns scheduled for {{ formattedScheduleDate }}
+            </p>
           </div>
         </div>
       </div>
@@ -157,7 +227,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import Papa from 'papaparse';
 
 const selectedFile = ref(null);
@@ -168,6 +238,56 @@ const jsonResult = ref(null);
 const error = ref(null);
 const copySuccess = ref(null);
 const campaignResult = ref(null);
+
+// Scheduling options
+const isScheduled = ref(false);
+const scheduledDate = ref('');
+const scheduledTime = ref('');
+const listId = ref('');
+const showListHelp = ref(false);
+
+// Set default date to today and time to current time + 1 hour
+const today = new Date();
+const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+
+// Format date as YYYY-MM-DD for the input
+const formatDateForInput = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Format time as HH:MM for the input
+const formatTimeForInput = (date) => {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
+// Initialize with tomorrow's date and current time
+scheduledDate.value = formatDateForInput(tomorrow);
+scheduledTime.value = formatTimeForInput(today);
+
+// Minimum date should be today
+const minDate = formatDateForInput(today);
+
+// Formatted schedule date for display
+const formattedScheduleDate = computed(() => {
+  if (!scheduledDate.value || !scheduledTime.value) return 'Invalid date';
+  
+  const dateObj = new Date(`${scheduledDate.value}T${scheduledTime.value}`);
+  return dateObj.toLocaleString('en-US', { 
+    weekday: 'long',
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true
+  });
+});
 
 const handleFileSelect = (event) => {
   const file = event.target.files[0];
@@ -278,13 +398,35 @@ const sendCampaign = async () => {
   campaignResult.value = null;
   
   try {
+    // Prepare scheduled date if needed
+    let scheduledAt = null;
+    if (isScheduled.value && scheduledDate.value && scheduledTime.value) {
+      // Create ISO string from date and time inputs
+      const dateTimeString = `${scheduledDate.value}T${scheduledTime.value}:00`;
+      const scheduledDateTime = new Date(dateTimeString);
+      
+      // Validate the date is in the future
+      if (scheduledDateTime <= new Date()) {
+        throw new Error('Scheduled time must be in the future');
+      }
+      
+      scheduledAt = scheduledDateTime.toISOString();
+    }
+    
+    // Prepare the list ID if provided
+    const listIdValue = listId.value ? parseInt(listId.value, 10) : null;
+    
     // Call the API endpoint to send the campaign
     const response = await fetch('/api/send-campaign', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ data: jsonResult.value }),
+      body: JSON.stringify({ 
+        data: jsonResult.value,
+        scheduledAt: scheduledAt,
+        listId: listIdValue
+      }),
     });
     
     const result = await response.json();
