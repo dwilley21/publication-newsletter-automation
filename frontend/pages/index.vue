@@ -56,10 +56,19 @@
       </div>
     </div>
     
-    <div v-if="jsonResult" class="max-w-4xl mx-auto mt-8 bg-white p-6 rounded-lg shadow-md">
+    <div v-if="jsonResult" class="max-w-4xl mx-auto mt-8 bg-white p-6 rounded-lg shadow-md campaign-data-section">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold">Campaign Data</h2>
         <div class="flex space-x-2">
+          <button 
+            @click="resetForm" 
+            class="bg-gray-500 hover:bg-gray-600 text-white py-1 px-4 rounded-lg text-sm flex items-center mr-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Reset
+          </button>
           <button 
             @click="sendCampaign" 
             class="bg-purple-500 hover:bg-purple-600 text-white py-1 px-4 rounded-lg text-sm flex items-center"
@@ -79,7 +88,10 @@
       
       <div class="bg-gray-100 p-4 rounded-lg mb-4">
         <h3 class="text-md font-medium mb-2">CSV Data Summary</h3>
-        <p class="text-gray-700">{{ jsonResult.length }} campaign(s) ready to send</p>
+        <div class="flex flex-wrap gap-4">
+          <p class="text-gray-700">{{ readyToSendCount }} campaign(s) ready to send</p>
+          <p v-if="scheduledCount > 0" class="text-blue-600">{{ scheduledCount }} scheduled for later</p>
+        </div>
       </div>
       
       <!-- Individual Campaign Cards -->
@@ -121,9 +133,15 @@
           <!-- HTML Preview Section -->
           <div v-if="campaign.showPreview" class="mt-3 border-t border-gray-200 pt-3">
             <h4 class="text-sm font-medium text-gray-700 mb-2">HTML Preview</h4>
+            
+            <!-- Preview Error Message -->
+            <div v-if="campaign.previewError" class="mb-2 p-2 bg-red-50 text-red-600 text-sm rounded">
+              {{ campaign.previewError }}
+            </div>
+            
             <div class="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden" style="max-height: 300px;">
               <div class="relative">
-                <div class="absolute top-0 right-0 bg-gray-100 p-1 rounded-bl-md">
+                <div class="absolute top-0 right-0 bg-gray-100 p-1 rounded-bl-md z-10">
                   <button 
                     @click="openFullPreview(index)" 
                     class="text-blue-500 hover:text-blue-700 text-xs flex items-center"
@@ -134,11 +152,22 @@
                     Expand
                   </button>
                 </div>
+                
+                <!-- Loading Placeholder -->
+                <div 
+                  v-if="previewLoading[index]" 
+                  class="preview-loading w-full"
+                  style="height: 300px;"
+                ></div>
+                
+                <!-- Actual Preview -->
                 <iframe 
+                  v-else
                   :srcdoc="campaign.original.HTML" 
-                  class="w-full border-0"
+                  class="w-full border-0 preview-iframe"
                   style="height: 300px;"
                   sandbox="allow-same-origin"
+                  loading="lazy"
                 ></iframe>
               </div>
             </div>
@@ -281,6 +310,7 @@ const error = ref(null);
 const campaignResult = ref(null);
 const campaignData = ref([]);
 const showListHelp = ref(false);
+const previewLoading = ref({}); // Track loading state for each preview
 
 // Set default date to today and time to current time + 1 hour
 const today = new Date();
@@ -305,6 +335,16 @@ const formatTimeForInput = (date) => {
 // Minimum date should be today
 const minDate = formatDateForInput(today);
 
+// Computed property for ready-to-send campaigns count
+const readyToSendCount = computed(() => {
+  return campaignData.value.length;
+});
+
+// Computed property for scheduled campaigns count
+const scheduledCount = computed(() => {
+  return campaignData.value.filter(campaign => campaign.isScheduled).length;
+});
+
 // Watch for changes to jsonResult and update campaignData
 watch(jsonResult, (newValue) => {
   if (newValue) {
@@ -314,7 +354,8 @@ watch(jsonResult, (newValue) => {
       scheduledDate: formatDateForInput(tomorrow),
       scheduledTime: formatTimeForInput(today),
       listId: '',
-      showPreview: false
+      showPreview: false,
+      previewError: null
     }));
   } else {
     campaignData.value = [];
@@ -324,6 +365,16 @@ watch(jsonResult, (newValue) => {
 // Toggle preview for a specific campaign
 const togglePreview = (index) => {
   if (campaignData.value[index]) {
+    // If we're showing the preview, set loading state
+    if (!campaignData.value[index].showPreview) {
+      previewLoading.value[index] = true;
+      
+      // Reset after a short delay to simulate loading
+      setTimeout(() => {
+        previewLoading.value[index] = false;
+      }, 500);
+    }
+    
     campaignData.value[index].showPreview = !campaignData.value[index].showPreview;
   }
 };
@@ -332,11 +383,26 @@ const togglePreview = (index) => {
 const openFullPreview = (index) => {
   if (!campaignData.value[index]) return;
   
-  // Create a new window with the HTML content
-  const htmlContent = campaignData.value[index].original.HTML;
-  const previewWindow = window.open('', '_blank', 'width=800,height=600');
-  previewWindow.document.write(htmlContent);
-  previewWindow.document.close();
+  try {
+    // Create a new window with the HTML content
+    const htmlContent = campaignData.value[index].original.HTML;
+    const previewWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    if (!previewWindow) {
+      throw new Error('Popup blocked. Please allow popups for this site.');
+    }
+    
+    previewWindow.document.write(htmlContent);
+    previewWindow.document.close();
+  } catch (err) {
+    // Set error on the campaign
+    campaignData.value[index].previewError = err.message;
+    
+    // Clear error after 3 seconds
+    setTimeout(() => {
+      campaignData.value[index].previewError = null;
+    }, 3000);
+  }
 };
 
 // Toggle schedule for a specific campaign
@@ -362,11 +428,23 @@ const getFormattedScheduleDate = (campaign) => {
   });
 };
 
+// Reset the form and results
+const resetForm = () => {
+  selectedFile.value = null;
+  jsonResult.value = null;
+  campaignData.value = [];
+  campaignResult.value = null;
+  error.value = null;
+};
+
 const handleFileSelect = (event) => {
   const file = event.target.files[0];
   if (file && file.type === 'text/csv') {
     selectedFile.value = file;
     error.value = null;
+    // Reset previous results when a new file is selected
+    jsonResult.value = null;
+    campaignResult.value = null;
   } else {
     error.value = 'Please select a valid CSV file';
   }
@@ -378,6 +456,9 @@ const handleFileDrop = (event) => {
   if (file && file.type === 'text/csv') {
     selectedFile.value = file;
     error.value = null;
+    // Reset previous results when a new file is dropped
+    jsonResult.value = null;
+    campaignResult.value = null;
   } else {
     error.value = 'Please drop a valid CSV file';
   }
@@ -389,6 +470,7 @@ const processFile = () => {
   isProcessing.value = true;
   error.value = null;
   jsonResult.value = null;
+  campaignResult.value = null;
   
   Papa.parse(selectedFile.value, {
     header: true,
@@ -417,10 +499,24 @@ const processFile = () => {
           Object.values(row).some(val => val && val.trim() !== '')
         );
         
+        if (filteredData.length === 0) {
+          error.value = 'CSV file contains no valid data rows';
+          isProcessing.value = false;
+          return;
+        }
+        
         jsonResult.value = filteredData;
-        isProcessing.value = false;
+        
+        // Scroll to the campaign data section
+        setTimeout(() => {
+          const campaignDataElement = document.querySelector('.campaign-data-section');
+          if (campaignDataElement) {
+            campaignDataElement.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
       } catch (err) {
         error.value = `Error processing CSV: ${err.message}`;
+      } finally {
         isProcessing.value = false;
       }
     },
@@ -492,4 +588,28 @@ const sendCampaign = async () => {
     isSending.value = false;
   }
 };
-</script> 
+</script>
+
+<style scoped>
+.preview-iframe {
+  transition: height 0.3s ease;
+}
+
+.preview-loading {
+  background: linear-gradient(90deg, #f0f0f0, #e0e0e0, #f0f0f0);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+</style> 
