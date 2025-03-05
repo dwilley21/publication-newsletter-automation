@@ -5,7 +5,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
         </svg>
-        <h1 class="text-xl font-bold text-gray-800">Brevo CSV Processor</h1>
+        <h1 class="text-xl font-bold text-gray-800">Publication Newsletter Automation</h1>
       </div>
       <div>
         <button class="text-gray-600 hover:text-gray-800">
