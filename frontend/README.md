@@ -10,6 +10,9 @@ A modern web interface for the Brevo CSV Processor, built with Nuxt.js.
 - Download JSON results
 - Copy JSON to clipboard
 - Responsive design with Tailwind CSS
+- Individual campaign scheduling
+- HTML preview functionality
+- Campaign sending to Brevo API
 
 ## Prerequisites
 
@@ -52,6 +55,49 @@ Newsletter 1,Welcome to our newsletter,This is our first newsletter,info@example
 Newsletter 2,Latest Updates,Check out our latest updates,updates@example.com,"<h1>Latest Updates</h1><p>Here are our latest updates.</p>"
 ```
 
+## Testing
+
+The application includes a comprehensive test suite built with Vitest. Tests are organized into unit tests and integration tests.
+
+### Running Tests
+
+To run all tests:
+
+```
+npm test
+```
+
+To run tests in watch mode (useful during development):
+
+```
+npm run test:watch
+```
+
+To generate test coverage reports:
+
+```
+npm run test:coverage
+```
+
+### Test Structure
+
+- `tests/unit/`: Unit tests for individual components and utilities
+  - `csv-processor.test.js`: Tests for CSV processing functionality
+  - `CsvFormatInfo.test.js`: Tests for the CsvFormatInfo component
+- `tests/integration/`: Integration tests for API endpoints
+  - `send-campaign.test.js`: Tests for the send-campaign API endpoint
+
+### Test Coverage
+
+The test suite covers:
+
+- CSV parsing and validation
+- Required column validation
+- Empty row filtering
+- Component functionality
+- API endpoint behavior
+- Error handling
+
 ## Building for Production
 
 To build the application for production:
@@ -74,8 +120,14 @@ npm run preview
   - `AppHeader.vue`: Application header
   - `AppFooter.vue`: Application footer
   - `CsvFormatInfo.vue`: Information about CSV format requirements
+- `server/api/`: API endpoints
+  - `send-campaign.post.js`: Endpoint for sending campaigns to Brevo
+- `tests/`: Test files
+  - `unit/`: Unit tests
+  - `integration/`: Integration tests
 - `nuxt.config.ts`: Nuxt.js configuration
 - `tailwind.config.js`: Tailwind CSS configuration
+- `vitest.config.js`: Vitest configuration
 
 ## License
 

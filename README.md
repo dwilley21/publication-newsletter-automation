@@ -10,6 +10,10 @@ A Node.js application that processes CSV files and sends the data to the Brevo A
 - Supports creating contacts and sending transactional emails
 - Command-line interface for easy usage
 - Modern web interface for CSV processing (Nuxt.js frontend)
+- Individual campaign scheduling with date and time selection
+- HTML preview functionality for campaign content
+- Campaign sending to Brevo API with error handling
+- Comprehensive test suite for both frontend and backend
 
 ## Prerequisites
 
@@ -87,7 +91,7 @@ The project includes a modern web interface built with Nuxt.js:
 
 4. Open your browser and navigate to `http://localhost:3001` (or the port shown in your terminal)
 
-5. Use the web interface to upload CSV files, process them, and download the resulting JSON
+5. Use the web interface to upload CSV files, process them, and send campaigns to Brevo
 
 ### Global Installation
 
@@ -113,6 +117,44 @@ Publication Name,Subject,Description,sender,HTML
 Newsletter 1,Welcome to our newsletter,This is our first newsletter,info@example.com,"<h1>Welcome!</h1><p>This is our first newsletter.</p>"
 ```
 
+## Testing
+
+The application includes comprehensive test suites for both the backend and frontend components.
+
+### Backend Tests
+
+To run backend tests:
+
+```
+npm test
+```
+
+### Frontend Tests
+
+To run frontend tests:
+
+1. Navigate to the frontend directory:
+   ```
+   cd frontend
+   ```
+
+2. Run the tests:
+   ```
+   npm test
+   ```
+
+3. For test coverage reports:
+   ```
+   npm run test:coverage
+   ```
+
+### Test Structure
+
+- Backend tests: Test the CLI and API functionality
+- Frontend tests:
+  - Unit tests: Test individual components and utilities
+  - Integration tests: Test API endpoints
+
 ## Project Structure
 
 ### Backend
@@ -128,8 +170,11 @@ Newsletter 1,Welcome to our newsletter,This is our first newsletter,info@example
   - `app.vue`: Main application component
   - `pages/index.vue`: Main landing page with CSV upload functionality
   - `components/`: Reusable Vue components
+  - `server/api/`: API endpoints for sending campaigns
+  - `tests/`: Test files (unit and integration tests)
   - `nuxt.config.ts`: Nuxt.js configuration
   - `tailwind.config.js`: Tailwind CSS configuration
+  - `vitest.config.js`: Vitest configuration
 
 ## Customization
 
