@@ -58,26 +58,8 @@
     
     <div v-if="jsonResult" class="max-w-4xl mx-auto mt-8 bg-white p-6 rounded-lg shadow-md">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold">JSON Result</h2>
+        <h2 class="text-xl font-semibold">Campaign Data</h2>
         <div class="flex space-x-2">
-          <button 
-            @click="copyToClipboard" 
-            class="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded-lg text-sm flex items-center"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            Copy JSON
-          </button>
-          <button 
-            @click="downloadJson" 
-            class="bg-green-500 hover:bg-green-600 text-white py-1 px-4 rounded-lg text-sm flex items-center"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Download JSON
-          </button>
           <button 
             @click="sendCampaign" 
             class="bg-purple-500 hover:bg-purple-600 text-white py-1 px-4 rounded-lg text-sm flex items-center"
@@ -161,10 +143,20 @@
         </p>
       </div>
       
-      <pre class="bg-gray-100 p-4 rounded-lg overflow-auto max-h-96 text-sm">{{ JSON.stringify(jsonResult, null, 2) }}</pre>
+      <div class="bg-gray-100 p-4 rounded-lg">
+        <h3 class="text-md font-medium mb-2">CSV Data Summary</h3>
+        <p class="text-gray-700">{{ jsonResult.length }} campaign(s) ready to send</p>
+        <ul class="mt-2 space-y-1">
+          <li v-for="(item, index) in jsonResult.slice(0, 3)" :key="index" class="text-sm text-gray-600">
+            • {{ item['Publication Name'] }} - {{ item['Subject'] }}
+          </li>
+          <li v-if="jsonResult.length > 3" class="text-sm text-gray-500 italic">
+            ...and {{ jsonResult.length - 3 }} more
+          </li>
+        </ul>
+      </div>
     </div>
     
-    <!-- Campaign Results Section -->
     <div v-if="campaignResult" class="max-w-4xl mx-auto mt-8 bg-white p-6 rounded-lg shadow-md">
       <h2 class="text-xl font-semibold mb-4">Campaign Results</h2>
       
@@ -219,10 +211,6 @@
       <strong class="font-bold">Error:</strong>
       <span class="block sm:inline">{{ error }}</span>
     </div>
-    
-    <div v-if="copySuccess" class="fixed bottom-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-lg">
-      <span class="block sm:inline">{{ copySuccess }}</span>
-    </div>
   </div>
 </template>
 
@@ -236,7 +224,6 @@ const isProcessing = ref(false);
 const isSending = ref(false);
 const jsonResult = ref(null);
 const error = ref(null);
-const copySuccess = ref(null);
 const campaignResult = ref(null);
 
 // Scheduling options
@@ -356,38 +343,6 @@ const processFile = () => {
       isProcessing.value = false;
     }
   });
-};
-
-const downloadJson = () => {
-  if (!jsonResult.value) return;
-  
-  const jsonString = JSON.stringify(jsonResult.value, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'brevo-data.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
-const copyToClipboard = () => {
-  if (!jsonResult.value) return;
-  
-  const jsonString = JSON.stringify(jsonResult.value, null, 2);
-  navigator.clipboard.writeText(jsonString)
-    .then(() => {
-      copySuccess.value = 'JSON copied to clipboard!';
-      setTimeout(() => {
-        copySuccess.value = null;
-      }, 3000);
-    })
-    .catch(err => {
-      error.value = `Failed to copy: ${err.message}`;
-    });
 };
 
 const sendCampaign = async () => {
