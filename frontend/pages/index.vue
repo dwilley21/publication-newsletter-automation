@@ -72,88 +72,101 @@
             <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
-            {{ isSending ? 'Sending...' : 'Send Campaign' }}
+            {{ isSending ? 'Sending...' : 'Send Campaigns' }}
           </button>
         </div>
       </div>
       
-      <!-- Schedule Options -->
-      <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <div class="flex items-center mb-2">
-          <input 
-            type="checkbox" 
-            id="scheduleToggle" 
-            v-model="isScheduled" 
-            class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-          >
-          <label for="scheduleToggle" class="ml-2 text-sm font-medium text-gray-700">
-            Schedule campaign for later
-          </label>
-        </div>
-        
-        <div v-if="isScheduled" class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-            <input 
-              type="date" 
-              v-model="scheduledDate" 
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              :min="minDate"
-            >
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
-            <input 
-              type="time" 
-              v-model="scheduledTime" 
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-          </div>
-        </div>
-        
-        <div v-if="isScheduled" class="mt-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Brevo List ID (optional)</label>
-          <div class="flex items-center">
-            <input 
-              type="number" 
-              v-model="listId" 
-              placeholder="Default: 2"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-            <div class="ml-2">
+      <div class="bg-gray-100 p-4 rounded-lg mb-4">
+        <h3 class="text-md font-medium mb-2">CSV Data Summary</h3>
+        <p class="text-gray-700">{{ jsonResult.length }} campaign(s) ready to send</p>
+      </div>
+      
+      <!-- Individual Campaign Cards -->
+      <div class="space-y-4 mt-4">
+        <div v-for="(campaign, index) in campaignData" :key="index" class="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="font-medium text-lg">{{ campaign.original['Publication Name'] }}</h3>
+              <p class="text-gray-600">{{ campaign.original['Subject'] }}</p>
+            </div>
+            <div class="flex items-center">
               <button 
-                type="button"
-                @click="showListHelp = !showListHelp"
-                class="text-gray-500 hover:text-gray-700"
+                @click="toggleSchedule(index)" 
+                class="text-blue-500 hover:text-blue-700 mr-2 text-sm flex items-center"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
+                {{ campaign.isScheduled ? 'Edit Schedule' : 'Schedule' }}
               </button>
             </div>
           </div>
-          <div v-if="showListHelp" class="mt-2 text-sm text-gray-500 bg-gray-100 p-2 rounded">
-            <p>The List ID is required by Brevo when scheduling campaigns. You can find your list IDs in your Brevo account under Contacts > Lists.</p>
-            <p class="mt-1">If not specified, the default list ID (2) will be used, which is typically the default list in Brevo.</p>
+          
+          <!-- Schedule Options for this campaign -->
+          <div v-if="campaign.isScheduled" class="mt-3 border-t border-gray-200 pt-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input 
+                  type="date" 
+                  v-model="campaign.scheduledDate" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  :min="minDate"
+                >
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                <input 
+                  type="time" 
+                  v-model="campaign.scheduledTime" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Brevo List ID (optional)</label>
+              <div class="flex items-center">
+                <input 
+                  type="number" 
+                  v-model="campaign.listId" 
+                  placeholder="Default: 2"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                <div class="ml-2">
+                  <button 
+                    type="button"
+                    @click="showListHelp = !showListHelp"
+                    class="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div v-if="showListHelp" class="mt-2 text-sm text-gray-500 bg-gray-100 p-2 rounded">
+                <p>The List ID is required by Brevo when scheduling campaigns. You can find your list IDs in your Brevo account under Contacts > Lists.</p>
+                <p class="mt-1">If not specified, the default list ID (2) will be used, which is typically the default list in Brevo.</p>
+              </div>
+            </div>
+            
+            <p class="text-sm text-gray-500">
+              Will be scheduled for {{ getFormattedScheduleDate(campaign) }}
+            </p>
+          </div>
+          
+          <div class="mt-2 flex justify-end">
+            <button 
+              v-if="campaign.isScheduled" 
+              @click="toggleSchedule(index)" 
+              class="text-red-500 hover:text-red-700 text-sm"
+            >
+              Cancel Schedule
+            </button>
           </div>
         </div>
-        
-        <p v-if="isScheduled" class="mt-2 text-sm text-gray-500">
-          Your campaign will be scheduled to send on {{ formattedScheduleDate }}.
-        </p>
-      </div>
-      
-      <div class="bg-gray-100 p-4 rounded-lg">
-        <h3 class="text-md font-medium mb-2">CSV Data Summary</h3>
-        <p class="text-gray-700">{{ jsonResult.length }} campaign(s) ready to send</p>
-        <ul class="mt-2 space-y-1">
-          <li v-for="(item, index) in jsonResult.slice(0, 3)" :key="index" class="text-sm text-gray-600">
-            • {{ item['Publication Name'] }} - {{ item['Subject'] }}
-          </li>
-          <li v-if="jsonResult.length > 3" class="text-sm text-gray-500 italic">
-            ...and {{ jsonResult.length - 3 }} more
-          </li>
-        </ul>
       </div>
     </div>
     
@@ -167,9 +180,6 @@
           </svg>
           <div>
             <p class="text-green-700 font-medium">{{ campaignResult.message }}</p>
-            <p v-if="isScheduled" class="text-green-600 text-sm mt-1">
-              Campaigns scheduled for {{ formattedScheduleDate }}
-            </p>
           </div>
         </div>
       </div>
@@ -184,6 +194,9 @@
               </svg>
               <span class="font-medium">{{ campaign.publicationName }}</span>
               <span class="ml-2 text-gray-500 text-sm">Campaign ID: {{ campaign.campaignId }}</span>
+              <span v-if="campaign.scheduled" class="ml-2 text-blue-500 text-sm">
+                Scheduled: {{ campaign.scheduled }}
+              </span>
             </div>
           </div>
         </div>
@@ -215,7 +228,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Papa from 'papaparse';
 
 const selectedFile = ref(null);
@@ -225,12 +238,7 @@ const isSending = ref(false);
 const jsonResult = ref(null);
 const error = ref(null);
 const campaignResult = ref(null);
-
-// Scheduling options
-const isScheduled = ref(false);
-const scheduledDate = ref('');
-const scheduledTime = ref('');
-const listId = ref('');
+const campaignData = ref([]);
 const showListHelp = ref(false);
 
 // Set default date to today and time to current time + 1 hour
@@ -253,18 +261,36 @@ const formatTimeForInput = (date) => {
   return `${hours}:${minutes}`;
 };
 
-// Initialize with tomorrow's date and current time
-scheduledDate.value = formatDateForInput(tomorrow);
-scheduledTime.value = formatTimeForInput(today);
-
 // Minimum date should be today
 const minDate = formatDateForInput(today);
 
-// Formatted schedule date for display
-const formattedScheduleDate = computed(() => {
-  if (!scheduledDate.value || !scheduledTime.value) return 'Invalid date';
+// Watch for changes to jsonResult and update campaignData
+watch(jsonResult, (newValue) => {
+  if (newValue) {
+    campaignData.value = newValue.map(item => ({
+      original: item,
+      isScheduled: false,
+      scheduledDate: formatDateForInput(tomorrow),
+      scheduledTime: formatTimeForInput(today),
+      listId: ''
+    }));
+  } else {
+    campaignData.value = [];
+  }
+});
+
+// Toggle schedule for a specific campaign
+const toggleSchedule = (index) => {
+  if (campaignData.value[index]) {
+    campaignData.value[index].isScheduled = !campaignData.value[index].isScheduled;
+  }
+};
+
+// Get formatted schedule date for a campaign
+const getFormattedScheduleDate = (campaign) => {
+  if (!campaign.scheduledDate || !campaign.scheduledTime) return 'Invalid date';
   
-  const dateObj = new Date(`${scheduledDate.value}T${scheduledTime.value}`);
+  const dateObj = new Date(`${campaign.scheduledDate}T${campaign.scheduledTime}`);
   return dateObj.toLocaleString('en-US', { 
     weekday: 'long',
     year: 'numeric', 
@@ -274,7 +300,7 @@ const formattedScheduleDate = computed(() => {
     minute: 'numeric',
     hour12: true
   });
-});
+};
 
 const handleFileSelect = (event) => {
   const file = event.target.files[0];
@@ -346,41 +372,42 @@ const processFile = () => {
 };
 
 const sendCampaign = async () => {
-  if (!jsonResult.value) return;
+  if (!campaignData.value || campaignData.value.length === 0) return;
   
   isSending.value = true;
   error.value = null;
   campaignResult.value = null;
   
   try {
-    // Prepare scheduled date if needed
-    let scheduledAt = null;
-    if (isScheduled.value && scheduledDate.value && scheduledTime.value) {
-      // Create ISO string from date and time inputs
-      const dateTimeString = `${scheduledDate.value}T${scheduledTime.value}:00`;
-      const scheduledDateTime = new Date(dateTimeString);
+    // Prepare the campaign data with individual scheduling information
+    const campaignsToSend = campaignData.value.map(campaign => {
+      const result = { ...campaign.original };
       
-      // Validate the date is in the future
-      if (scheduledDateTime <= new Date()) {
-        throw new Error('Scheduled time must be in the future');
+      // Add scheduling information if this campaign is scheduled
+      if (campaign.isScheduled && campaign.scheduledDate && campaign.scheduledTime) {
+        const dateTimeString = `${campaign.scheduledDate}T${campaign.scheduledTime}:00`;
+        const scheduledDateTime = new Date(dateTimeString);
+        
+        // Validate the date is in the future
+        if (scheduledDateTime <= new Date()) {
+          throw new Error(`Scheduled time for ${campaign.original['Publication Name']} must be in the future`);
+        }
+        
+        result._scheduledAt = scheduledDateTime.toISOString();
+        result._listId = campaign.listId ? parseInt(campaign.listId, 10) : 2;
       }
       
-      scheduledAt = scheduledDateTime.toISOString();
-    }
+      return result;
+    });
     
-    // Prepare the list ID if provided
-    const listIdValue = listId.value ? parseInt(listId.value, 10) : null;
-    
-    // Call the API endpoint to send the campaign
+    // Call the API endpoint to send the campaigns
     const response = await fetch('/api/send-campaign', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
-        data: jsonResult.value,
-        scheduledAt: scheduledAt,
-        listId: listIdValue
+        data: campaignsToSend
       }),
     });
     
