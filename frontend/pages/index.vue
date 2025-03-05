@@ -86,9 +86,24 @@
       <div class="space-y-4 mt-4">
         <div v-for="(campaign, index) in campaignData" :key="index" class="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
           <div class="flex justify-between items-start">
-            <div>
-              <h3 class="font-medium text-lg">{{ campaign.original['Publication Name'] }}</h3>
-              <p class="text-gray-600">{{ campaign.original['Subject'] }}</p>
+            <div class="flex items-start">
+              <!-- HTML Preview Toggle Button -->
+              <button 
+                @click="togglePreview(index)" 
+                class="mr-3 text-gray-500 hover:text-gray-700 flex flex-col items-center"
+                :class="{'text-blue-500 hover:text-blue-700': campaign.showPreview}"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <span class="text-xs mt-1">{{ campaign.showPreview ? 'Hide' : 'Preview' }}</span>
+              </button>
+              
+              <div>
+                <h3 class="font-medium text-lg">{{ campaign.original['Publication Name'] }}</h3>
+                <p class="text-gray-600">{{ campaign.original['Subject'] }}</p>
+              </div>
             </div>
             <div class="flex items-center">
               <button 
@@ -100,6 +115,32 @@
                 </svg>
                 {{ campaign.isScheduled ? 'Edit Schedule' : 'Schedule' }}
               </button>
+            </div>
+          </div>
+          
+          <!-- HTML Preview Section -->
+          <div v-if="campaign.showPreview" class="mt-3 border-t border-gray-200 pt-3">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">HTML Preview</h4>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden" style="max-height: 300px;">
+              <div class="relative">
+                <div class="absolute top-0 right-0 bg-gray-100 p-1 rounded-bl-md">
+                  <button 
+                    @click="openFullPreview(index)" 
+                    class="text-blue-500 hover:text-blue-700 text-xs flex items-center"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+                    </svg>
+                    Expand
+                  </button>
+                </div>
+                <iframe 
+                  :srcdoc="campaign.original.HTML" 
+                  class="w-full border-0"
+                  style="height: 300px;"
+                  sandbox="allow-same-origin"
+                ></iframe>
+              </div>
             </div>
           </div>
           
@@ -272,12 +313,31 @@ watch(jsonResult, (newValue) => {
       isScheduled: false,
       scheduledDate: formatDateForInput(tomorrow),
       scheduledTime: formatTimeForInput(today),
-      listId: ''
+      listId: '',
+      showPreview: false
     }));
   } else {
     campaignData.value = [];
   }
 });
+
+// Toggle preview for a specific campaign
+const togglePreview = (index) => {
+  if (campaignData.value[index]) {
+    campaignData.value[index].showPreview = !campaignData.value[index].showPreview;
+  }
+};
+
+// Open full preview in a modal or new window
+const openFullPreview = (index) => {
+  if (!campaignData.value[index]) return;
+  
+  // Create a new window with the HTML content
+  const htmlContent = campaignData.value[index].original.HTML;
+  const previewWindow = window.open('', '_blank', 'width=800,height=600');
+  previewWindow.document.write(htmlContent);
+  previewWindow.document.close();
+};
 
 // Toggle schedule for a specific campaign
 const toggleSchedule = (index) => {
