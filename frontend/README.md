@@ -118,7 +118,6 @@ npm run preview
 - `pages/index.vue`: Main landing page with CSV upload functionality
 - `components/`: Reusable Vue components
   - `AppHeader.vue`: Application header
-  - `AppFooter.vue`: Application footer
   - `CsvFormatInfo.vue`: Information about CSV format requirements
 - `server/api/`: API endpoints
   - `send-campaign.post.js`: Endpoint for sending campaigns to Brevo
